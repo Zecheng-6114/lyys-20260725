@@ -1,0 +1,357 @@
+# ============================
+# 游戏数据文件
+# ============================
+
+# --- UI 文本 ---
+[messages]
+game_title = "终端游戏引擎"
+game_help_hint = "输入 help 查看可用命令"
+prompt = ">"
+goodbye = "再见！"
+player_name = "冒险者"
+currency_unit = "金币"
+required_level_label = "需要等级"
+capacity_unit = "格"
+
+# --- 帮助文本 ---
+[help]
+title = "=== 命令帮助 ==="
+lines = [
+    "  help / h / ?          - 显示帮助",
+    "  status / st           - 查看角色状态",
+    "  inventory / inv / i   - 查看背包",
+    "  equipment / eq        - 查看装备",
+    "  search / find / s     - 搜索物品 (支持 type: rarity: 过滤)",
+    "  inspect / ex <物品>   - 查看物品详情",
+    "  equip <物品>          - 装备物品",
+    "  unequip <槽位>        - 卸下装备",
+    "  swapbackpack <背包>   - 替换背包",
+    "  list / ls / l         - 查看商店",
+    "  buy <物品> [数量]     - 购买物品",
+    "  sell <物品> [数量]    - 出售物品",
+    "  open <容器>           - 打开容器",
+    "  close                 - 关闭容器",
+    "  take <容器> <物品>    - 从容器取物",
+    "  put <容器> <物品>     - 放入容器",
+    "  contents <容器>       - 查看容器内容",
+    "  quit / q / exit       - 退出",
+]
+
+# --- 状态界面 ---
+[status]
+level_gold = "等级: {level}  金币: {gold}"
+hp = "生命: {hp}/{max_hp}"
+stats = "属性: {stats}"
+backpack = "背包: {used}/{cap} 格已用"
+no_backpack = "背包: 无"
+
+# --- 背包界面 ---
+[backpack_ui]
+empty = "  (空)"
+durability = " [耐久: {cur}/{max}]"
+no_backpack = "你没有背包"
+loose_title = "=== 散落物品 ==="
+
+# --- 装备界面 ---
+[equipment_ui]
+title = "=== 装备 ==="
+empty = "(空)"
+
+# --- 搜索 ---
+[search_ui]
+no_results = "没有找到匹配的物品"
+result_header = "=== 搜索结果 ({count} 件) ==="
+no_backpack = "你没有背包"
+
+# --- 商店 ---
+[shop_ui]
+no_shop = "这里没有商店"
+buy_success = "购买了 {qty} 个 {name} (花费 {cost} 金币)"
+buy_partial = "背包空间不足，只购买了 {qty} 个 {name} (花费 {cost} 金币)"
+sell_success = "出售了 {qty} 件物品 ({names}), 获得 {gold} 金币"
+price_header = "买入加价: {buy}%  卖出折扣: {sell}%"
+shop_empty = "  (商店已空)"
+stock_display = "库存:{stock}"
+stock_unlimited = "充足"
+
+# --- 容器 ---
+[container_ui]
+opened = "打开了 {name}"
+closed = "关闭了容器"
+not_open = "没有打开的容器"
+full = "容器已满"
+taken = "取出了 {name}"
+put_success = "放入了 {name} 到 {container}"
+empty = "  (空)"
+take_fail = "容器中没有: {name}"
+put_fail = "背包中没有: {name}"
+
+# --- 装备操作 ---
+[equip_ui]
+equipped = "装备了 {name}"
+unequipped = "卸下了 {name}"
+not_found = "背包中没有找到: {name}"
+not_equippable = "{name} 不可装备"
+use_swapbackpack = "使用 'swapbackpack' 来更换背包"
+need_level = "需要等级 {level} 才能装备 {name}"
+old_backpack_fail = "警告: 旧装备无法放入背包: {err}"
+no_slot = "该槽位没有装备"
+
+# --- 背包替换 ---
+[swap_ui]
+replaced = "背包已替换 (新容量: {cap} 格, 已用: {used})"
+overflow_header = "警告: 以下物品放不下，已散落在地上:"
+not_found = "背包中没有找到容器类物品: {name}"
+not_container = "{name} 不是容器"
+
+# --- 物品检查 ---
+[inspect_ui]
+type_rarity = "类型: {type}  稀有度: {rarity}"
+instance_id = "实例ID: {id}"
+base_price = "基础价格: {price} 金币"
+durability = "耐久度: {cur}/{max}"
+stats = "属性: {stats}"
+equip_slot = "装备槽: {slot}  需要等级: {level}"
+capacity = "容量: {cap} 格"
+effect = "效果: {desc}"
+set = "套装: {id}"
+not_found = "找不到物品: {name}"
+
+# --- 错误消息 ---
+[errors]
+container_full = "容器已满"
+item_not_found = "找不到物品: {name}"
+invalid_command = "无效命令: {msg}"
+not_enough_gold = "金币不足 (需要 {required}, 拥有 {available})"
+not_equippable = "{name} 不可装备"
+slot_occupied = "装备槽 {slot} 已被占用"
+invalid_target = "无效目标: {msg}"
+durability_exhausted = "物品耐久度已耗尽"
+out_of_stock = "商品已售罄: {name}"
+out_of_stock_with = "商品已售罄: {name} (库存: {stock})"
+not_in_shop = "这里没有商店"
+no_backpack = "你没有装备背包"
+container_not_found = "找不到容器: {name}"
+empty_input = "空输入"
+specify_item = "指定物品名称"
+equip_what = "装备什么？"
+unequip_what = "卸下哪个槽位？"
+unknown_slot = "未知槽位: {slot}"
+swap_what = "用哪个背包替换？"
+open_what = "打开什么？"
+take_format = "格式: take <容器> <物品>"
+put_format = "格式: put <容器> <物品>"
+contents_what = "查看哪个容器？"
+unknown_command = "未知命令: {cmd} (输入 help 查看帮助)"
+inspect_what = "检查什么？"
+
+# --- 物品定义 ---
+[[items]]
+id = "wooden_sword"
+name = "木剑"
+description = "一把简陋的木剑，聊胜于无"
+item_type = "weapon"
+rarity = "common"
+base_value = 10
+max_durability = 30
+attack = 3
+defense = 0
+speed = 0
+max_hp_bonus = 0
+equip_slot = "mainhand"
+required_level = 1
+
+[[items]]
+id = "iron_sword"
+name = "铁剑"
+description = "标准的铁制长剑"
+item_type = "weapon"
+rarity = "common"
+base_value = 50
+max_durability = 60
+attack = 8
+defense = 0
+speed = 1
+max_hp_bonus = 0
+equip_slot = "mainhand"
+required_level = 1
+
+[[items]]
+id = "steel_sword"
+name = "钢剑"
+description = "精钢打造的利剑，锋利耐用"
+item_type = "weapon"
+rarity = "uncommon"
+base_value = 150
+max_durability = 100
+attack = 15
+defense = 0
+speed = 2
+max_hp_bonus = 0
+equip_slot = "mainhand"
+required_level = 3
+
+[[items]]
+id = "leather_armor"
+name = "皮甲"
+description = "基础的皮革护甲"
+item_type = "armor"
+rarity = "common"
+base_value = 40
+max_durability = 50
+attack = 0
+defense = 5
+speed = 0
+max_hp_bonus = 10
+equip_slot = "chest"
+required_level = 1
+
+[[items]]
+id = "iron_helmet"
+name = "铁盔"
+description = "铁制头盔，保护头部"
+item_type = "armor"
+rarity = "common"
+base_value = 35
+max_durability = 50
+attack = 0
+defense = 3
+speed = 0
+max_hp_bonus = 5
+equip_slot = "head"
+required_level = 1
+
+[[items]]
+id = "health_potion"
+name = "生命药水"
+description = "恢复 30 点生命值"
+item_type = "consumable"
+rarity = "common"
+base_value = 15
+max_durability = 0
+attack = 0
+defense = 0
+speed = 0
+max_hp_bonus = 0
+heal_hp = 30
+effect_desc = "恢复 30 HP"
+
+[[items]]
+id = "greater_health_potion"
+name = "强效生命药水"
+description = "恢复 80 点生命值"
+item_type = "consumable"
+rarity = "uncommon"
+base_value = 40
+max_durability = 0
+attack = 0
+defense = 0
+speed = 0
+max_hp_bonus = 0
+heal_hp = 80
+effect_desc = "恢复 80 HP"
+
+[[items]]
+id = "iron_ore"
+name = "铁矿石"
+description = "常见的铁矿石"
+item_type = "material"
+rarity = "common"
+base_value = 5
+max_durability = 0
+attack = 0
+defense = 0
+speed = 0
+max_hp_bonus = 0
+
+[[items]]
+id = "leather"
+name = "皮革"
+description = "加工过的兽皮"
+item_type = "material"
+rarity = "common"
+base_value = 8
+max_durability = 0
+attack = 0
+defense = 0
+speed = 0
+max_hp_bonus = 0
+
+[[items]]
+id = "small_backpack"
+name = "小型背包"
+description = "一个小型背包，容量 10"
+item_type = "container"
+rarity = "common"
+base_value = 20
+max_durability = 0
+attack = 0
+defense = 0
+speed = 0
+max_hp_bonus = 0
+equip_slot = "backpack"
+required_level = 1
+container_capacity = 10
+
+[[items]]
+id = "medium_backpack"
+name = "中型背包"
+description = "一个中型背包，容量 20"
+item_type = "container"
+rarity = "uncommon"
+base_value = 80
+max_durability = 0
+attack = 0
+defense = 0
+speed = 0
+max_hp_bonus = 0
+equip_slot = "backpack"
+required_level = 1
+container_capacity = 20
+
+[[items]]
+id = "large_backpack"
+name = "大型背包"
+description = "一个大型背包，容量 35"
+item_type = "container"
+rarity = "rare"
+base_value = 250
+max_durability = 0
+attack = 0
+defense = 0
+speed = 0
+max_hp_bonus = 0
+equip_slot = "backpack"
+required_level = 1
+container_capacity = 35
+
+# --- 商店定义 ---
+[[shops]]
+name = "旅行商人的摊位"
+buy_modifier = 1.0
+sell_modifier = 0.5
+
+[shops.stock]
+wooden_sword = 5
+iron_sword = 3
+steel_sword = 1
+leather_armor = 3
+iron_helmet = 3
+health_potion = 10
+greater_health_potion = 5
+iron_ore = 20
+leather = 15
+small_backpack = 3
+medium_backpack = 2
+large_backpack = 1
+
+# --- 容器定义 ---
+[[containers]]
+id = "chest_1"
+name = "破旧木箱"
+capacity = 20
+
+[[containers]]
+id = "chest_2"
+name = "铁制储物柜"
+capacity = 30
