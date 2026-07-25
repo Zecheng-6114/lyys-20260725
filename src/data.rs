@@ -2,6 +2,9 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
+use crate::dialogue::{
+    DialogueChoice, DialogueDef, DialogueEffect, DialogueNode, NpcDef,
+};
 use crate::item::equipment::{EquipData, EquipmentSlot, Stats};
 use crate::item::{ContainerDef, ItemDef, ItemEffect, ItemType, Rarity};
 
@@ -18,10 +21,13 @@ pub struct RawData {
     pub equip_ui: HashMap<String, String>,
     pub swap_ui: HashMap<String, String>,
     pub inspect_ui: HashMap<String, String>,
+    pub dialogue_ui: HashMap<String, String>,
     pub errors: HashMap<String, String>,
     pub items: Vec<RawItemDef>,
     pub shops: Vec<RawShopDef>,
     pub containers: Vec<RawContainerDef>,
+    pub npcs: Vec<RawNpcDef>,
+    pub dialogues: Vec<RawDialogueDef>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -63,6 +69,43 @@ pub struct RawContainerDef {
     pub id: String,
     pub name: String,
     pub capacity: usize,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RawNpcDef {
+    pub id: String,
+    pub name: String,
+    pub dialogue: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RawDialogueDef {
+    pub id: String,
+    pub npc_name: String,
+    pub nodes: Vec<RawDialogueNode>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RawDialogueNode {
+    pub id: String,
+    pub text: String,
+    pub choices: Vec<RawDialogueChoice>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RawDialogueChoice {
+    pub text: String,
+    pub next: Option<String>,
+    #[serde(default)]
+    pub effects: Vec<RawDialogueEffect>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RawDialogueEffect {
+    pub effect_type: String,
+    pub value: Option<u32>,
+    pub item_id: Option<String>,
+    pub quantity: Option<u32>,
 }
 
 pub struct GameData {
@@ -168,6 +211,81 @@ impl GameData {
                     container,
                     effect,
                     set_id: None,
+                }
+            })
+            .collect()
+    }
+
+    pub fn build_npc_defs(&self) -> Vec<NpcDef> {
+        self.raw
+            .npcs
+            .iter()
+            .map(|raw| NpcDef {
+                id: raw.id.clone(),
+                name: raw.name.clone(),
+                dialogue_id: raw.dialogue.clone(),
+            })
+            .collect()
+    }
+
+    pub fn build_dialogue_defs(&self) -> Vec<DialogueDef> {
+        self.raw
+            .dialogues
+            .iter()
+            .map(|raw| {
+                let nodes = raw
+                    .nodes
+                    .iter()
+                    .map(|raw_node| {
+                        let choices = raw_node
+                            .choices
+                            .iter()
+                            .map(|raw_choice| {
+                                let effects = raw_choice
+                                    .effects
+                                    .iter()
+                                    .filter_map(|raw_effect| {
+                                        match raw_effect.effect_type.as_str() {
+                                            "give_gold" => {
+                                                Some(DialogueEffect::GiveGold(raw_effect.value.unwrap_or(0)))
+                                            }
+                                            "give_item" => {
+                                                Some(DialogueEffect::GiveItem {
+                                                    def_id: raw_effect.item_id.clone().unwrap_or_default(),
+                                                    quantity: raw_effect.quantity.unwrap_or(1),
+                                                })
+                                            }
+                                            "take_gold" => {
+                                                Some(DialogueEffect::TakeGold(raw_effect.value.unwrap_or(0)))
+                                            }
+                                            "take_item" => {
+                                                Some(DialogueEffect::TakeItem {
+                                                    def_id: raw_effect.item_id.clone().unwrap_or_default(),
+                                                    quantity: raw_effect.quantity.unwrap_or(1),
+                                                })
+                                            }
+                                            _ => None,
+                                        }
+                                    })
+                                    .collect();
+                                DialogueChoice {
+                                    text: raw_choice.text.clone(),
+                                    next: raw_choice.next.clone(),
+                                    effects,
+                                }
+                            })
+                            .collect();
+                        DialogueNode {
+                            id: raw_node.id.clone(),
+                            text: raw_node.text.clone(),
+                            choices,
+                        }
+                    })
+                    .collect();
+                DialogueDef {
+                    id: raw.id.clone(),
+                    npc_name: raw.npc_name.clone(),
+                    nodes,
                 }
             })
             .collect()

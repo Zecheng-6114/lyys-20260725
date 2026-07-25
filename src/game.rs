@@ -1,6 +1,7 @@
 use crate::command::Command;
 use crate::container::{Chest, Container};
 use crate::data::GameData;
+use crate::dialogue::{ActiveDialogue, DialogueDef, DialogueEffect, NpcDef};
 use crate::error::GameError;
 use crate::item::equipment::{EquipmentSlot, SetEffect};
 use crate::item::{ItemInstance, ItemRegistry, ItemType, Rarity};
@@ -14,6 +15,9 @@ pub struct Game {
     pub containers: Vec<Chest>,
     pub set_effects: Vec<SetEffect>,
     pub open_container: Option<String>,
+    pub npcs: Vec<NpcDef>,
+    pub dialogues: Vec<DialogueDef>,
+    pub active_dialogue: Option<ActiveDialogue>,
     pub data: GameData,
 }
 
@@ -43,6 +47,9 @@ impl Game {
             .map(|rc| Chest::new(&rc.id, &rc.name, rc.capacity))
             .collect();
 
+        let npcs = data.build_npc_defs();
+        let dialogues = data.build_dialogue_defs();
+
         Self {
             player,
             registry,
@@ -50,6 +57,9 @@ impl Game {
             containers,
             set_effects: Vec::new(),
             open_container: None,
+            npcs,
+            dialogues,
+            active_dialogue: None,
             data,
         }
     }
@@ -66,6 +76,15 @@ impl Game {
             let mut input = String::new();
             if stdin.read_line(&mut input).unwrap() == 0 {
                 break;
+            }
+
+            let input = input.trim().to_string();
+
+            if self.active_dialogue.is_some() {
+                if self.handle_dialogue_input(&input) {
+                    break;
+                }
+                continue;
             }
 
             match Command::parse(&input, &self.data) {
@@ -100,6 +119,8 @@ impl Game {
             Command::Take { container, item } => self.cmd_take(&container, &item),
             Command::Put { container, item } => self.cmd_put(&container, &item),
             Command::ContainerContents(name) => self.cmd_container_contents(&name),
+            Command::Talk(name) => self.cmd_talk(&name),
+            Command::ListNpcs => self.cmd_list_npcs(),
             Command::Quit => unreachable!(),
         }
     }
@@ -134,6 +155,9 @@ impl Game {
             }
             GameError::ContainerNotFound(name) => {
                 d.err("container_not_found").replace("{name}", name)
+            }
+            GameError::NpcNotFound(name) => {
+                d.err("npc_not_found").replace("{name}", name)
             }
         }
     }
@@ -673,6 +697,185 @@ impl Game {
                 }
             }
             None => println!("{}", self.format_error(&GameError::ContainerNotFound(name.to_string()))),
+        }
+    }
+
+    fn cmd_list_npcs(&self) {
+        let d = &self.data;
+        if self.npcs.is_empty() {
+            println!("{}", d.raw.dialogue_ui.get("no_npcs").unwrap());
+            return;
+        }
+        println!("{}", d.raw.dialogue_ui.get("npc_list_title").unwrap());
+        for npc in &self.npcs {
+            println!("  {} ({})", npc.name, npc.id);
+        }
+    }
+
+    fn cmd_talk(&mut self, name: &str) {
+        let lower = name.to_lowercase();
+        let npc = match self.npcs.iter().find(|n| n.name.to_lowercase().contains(&lower)) {
+            Some(n) => n,
+            None => {
+                println!("{}", self.format_error(&GameError::NpcNotFound(name.to_string())));
+                return;
+            }
+        };
+
+        let dialogue_id = npc.dialogue_id.clone();
+
+        self.active_dialogue = Some(ActiveDialogue {
+            dialogue_id,
+            current_node_id: "start".to_string(),
+        });
+
+        self.display_dialogue_node();
+    }
+
+    fn display_dialogue_node(&self) {
+        let active = self.active_dialogue.as_ref().unwrap();
+        let dialogue = match self.dialogues.iter().find(|d| d.id == active.dialogue_id) {
+            Some(d) => d,
+            None => return,
+        };
+
+        let node = match dialogue.nodes.iter().find(|n| n.id == active.current_node_id) {
+            Some(n) => n,
+            None => return,
+        };
+
+        let d = &self.data;
+        println!("\n=== {} ===", dialogue.npc_name);
+        println!("\"{}\"", node.text);
+
+        if node.choices.is_empty() {
+            println!("{}", d.raw.dialogue_ui.get("no_choices").unwrap());
+            return;
+        }
+
+        for (i, choice) in node.choices.iter().enumerate() {
+            println!("  {}. {}", i + 1, choice.text);
+        }
+    }
+
+    fn handle_dialogue_input(&mut self, input: &str) -> bool {
+        let input = input.trim();
+
+        if input.eq_ignore_ascii_case("q") || input.eq_ignore_ascii_case("quit") || input.eq_ignore_ascii_case("exit") {
+            println!("{}", self.data.raw.dialogue_ui.get("dialogue_end").unwrap());
+            self.active_dialogue = None;
+            return false;
+        }
+
+        let choice_idx = match input.parse::<usize>() {
+            Ok(n) => n,
+            Err(_) => {
+                println!("{}", self.data.raw.dialogue_ui.get("invalid_input").unwrap());
+                return false;
+            }
+        };
+
+        if choice_idx == 0 {
+            println!("{}", self.data.raw.dialogue_ui.get("invalid_input").unwrap());
+            return false;
+        }
+
+        let active = self.active_dialogue.as_ref().unwrap();
+        let dialogue_id = active.dialogue_id.clone();
+        let node_id = active.current_node_id.clone();
+
+        let dialogue = match self.dialogues.iter().find(|d| d.id == dialogue_id) {
+            Some(d) => d,
+            None => {
+                self.active_dialogue = None;
+                return false;
+            }
+        };
+
+        let node = match dialogue.nodes.iter().find(|n| n.id == node_id) {
+            Some(n) => n,
+            None => {
+                self.active_dialogue = None;
+                return false;
+            }
+        };
+
+        if choice_idx > node.choices.len() {
+            println!("{}", self.data.raw.dialogue_ui.get("invalid_input").unwrap());
+            return false;
+        }
+
+        let choice = &node.choices[choice_idx - 1];
+        let effects = choice.effects.clone();
+        let next = choice.next.clone();
+
+        self.apply_dialogue_effects(&effects);
+
+        match next {
+            Some(next_id) => {
+                self.active_dialogue.as_mut().unwrap().current_node_id = next_id.clone();
+                self.display_dialogue_node();
+
+                let dialogue = self.dialogues.iter().find(|d| d.id == dialogue_id).unwrap();
+                let next_node = dialogue.nodes.iter().find(|n| n.id == next_id).unwrap();
+                if next_node.choices.is_empty() {
+                    println!("{}", self.data.raw.dialogue_ui.get("dialogue_end").unwrap());
+                    self.active_dialogue = None;
+                }
+            }
+            None => {
+                println!("{}", self.data.raw.dialogue_ui.get("dialogue_end").unwrap());
+                self.active_dialogue = None;
+            }
+        }
+
+        false
+    }
+
+    fn apply_dialogue_effects(&mut self, effects: &[DialogueEffect]) {
+        for effect in effects {
+            match effect {
+                DialogueEffect::GiveGold(amount) => {
+                    self.player.gold += amount;
+                    println!(
+                        "{}",
+                        self.data.raw.dialogue_ui.get("received_gold").unwrap()
+                            .replace("{amount}", &amount.to_string())
+                    );
+                }
+                DialogueEffect::GiveItem { def_id, quantity } => {
+                    for _ in 0..*quantity {
+                        if let Some(instance) = self.registry.create_instance(def_id) {
+                            let name = self.registry.get(def_id).map(|d| d.name.clone()).unwrap_or_default();
+                            if let Err(_) = self.player.add_to_backpack(instance) {
+                                println!(
+                                    "{}",
+                                    self.data.raw.dialogue_ui.get("backpack_full").unwrap()
+                                );
+                                break;
+                            }
+                            println!(
+                                "{}",
+                                self.data.raw.dialogue_ui.get("received_item").unwrap()
+                                    .replace("{name}", &name)
+                            );
+                        }
+                    }
+                }
+                DialogueEffect::TakeGold(amount) => {
+                    if self.player.gold >= *amount {
+                        self.player.gold -= amount;
+                    }
+                }
+                DialogueEffect::TakeItem { def_id, quantity } => {
+                    let matches = self.player.find_in_backpack_by_name(def_id, &self.registry);
+                    let to_take = (*quantity as usize).min(matches.len());
+                    let ids: Vec<u64> = matches.iter().take(to_take).map(|i| i.instance_id).collect();
+                    for id in ids {
+                        self.player.remove_from_backpack(id);
+                    }
+                }
+            }
         }
     }
 }

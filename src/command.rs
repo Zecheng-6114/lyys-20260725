@@ -37,6 +37,8 @@ pub enum Command {
         item: String,
     },
     ContainerContents(String),
+    Talk(String),
+    ListNpcs,
     Quit,
 }
 
@@ -108,6 +110,11 @@ impl Command {
                 let name = rest.ok_or_else(|| data.err("contents_what").to_string())?;
                 Ok(Command::ContainerContents(name.to_string()))
             }
+            "talk" | "speak" => {
+                let name = rest.ok_or_else(|| data.err("talk_who").to_string())?;
+                Ok(Command::Talk(name.to_string()))
+            }
+            "npcs" => Ok(Command::ListNpcs),
             "quit" | "q" | "exit" => Ok(Command::Quit),
             _ => Err(data.err("unknown_command").replace("{cmd}", &verb)),
         }

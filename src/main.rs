@@ -1,6 +1,7 @@
 mod command;
 mod container;
 mod data;
+mod dialogue;
 mod error;
 mod game;
 mod item;

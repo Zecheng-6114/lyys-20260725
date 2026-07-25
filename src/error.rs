@@ -10,6 +10,7 @@ pub enum GameError {
     InvalidTarget(String),
     OutOfStock(String),
     ContainerNotFound(String),
+    NpcNotFound(String),
 }
 
 impl fmt::Display for GameError {
@@ -25,6 +26,7 @@ impl fmt::Display for GameError {
             GameError::InvalidTarget(msg) => write!(f, "无效目标: {}", msg),
             GameError::OutOfStock(name) => write!(f, "商品已售罄: {}", name),
             GameError::ContainerNotFound(name) => write!(f, "找不到容器: {}", name),
+            GameError::NpcNotFound(name) => write!(f, "找不到NPC: {}", name),
         }
     }
 }

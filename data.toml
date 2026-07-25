@@ -34,6 +34,8 @@ lines = [
     "  take <容器> <物品>    - 从容器取物",
     "  put <容器> <物品>     - 放入容器",
     "  contents <容器>       - 查看容器内容",
+    "  talk <NPC名>          - 与NPC对话",
+    "  npcs                  - 列出附近NPC",
     "  quit / q / exit       - 退出",
 ]
 
@@ -117,6 +119,17 @@ effect = "效果: {desc}"
 set = "套装: {id}"
 not_found = "找不到物品: {name}"
 
+# --- 对话 ---
+[dialogue_ui]
+npc_list_title = "=== 附近NPC ==="
+no_npcs = "附近没有人"
+no_choices = "（对话结束）"
+dialogue_end = "（对话结束）"
+invalid_input = "请输入数字选择选项，或输入 q 退出对话"
+received_gold = "获得了 {amount} 金币"
+received_item = "获得了 {name}"
+backpack_full = "背包已满，物品无法放入"
+
 # --- 错误消息 ---
 [errors]
 container_full = "容器已满"
@@ -144,6 +157,8 @@ put_format = "格式: put <容器> <物品>"
 contents_what = "查看哪个容器？"
 unknown_command = "未知命令: {cmd} (输入 help 查看帮助)"
 inspect_what = "检查什么？"
+npc_not_found = "找不到NPC: {name}"
+talk_who = "和谁对话？"
 
 # --- 物品定义 ---
 [[items]]
@@ -355,3 +370,87 @@ capacity = 20
 id = "chest_2"
 name = "铁制储物柜"
 capacity = 30
+
+# --- NPC定义 ---
+[[npcs]]
+id = "merchant_wang"
+name = "王商人"
+dialogue = "dialogue_merchant"
+
+[[npcs]]
+id = "old_hunter"
+name = "老猎人"
+dialogue = "dialogue_hunter"
+
+# --- 对话定义 ---
+[[dialogues]]
+id = "dialogue_merchant"
+npc_name = "王商人"
+
+[[dialogues.nodes]]
+id = "start"
+text = "嘿，冒险者！有什么需要的吗？"
+
+[[dialogues.nodes.choices]]
+text = "最近有什么消息？"
+next = "news"
+
+[[dialogues.nodes.choices]]
+text = "给我点路费吧"
+next = "give_gold"
+effects = [
+    { effect_type = "give_gold", value = 20 },
+]
+
+[[dialogues.nodes.choices]]
+text = "告辞"
+
+[[dialogues.nodes]]
+id = "news"
+text = "听说北边的地牢里有不少好东西，不过也很危险。你小心点！"
+
+[[dialogues.nodes.choices]]
+text = "谢谢提醒"
+
+[[dialogues.nodes]]
+id = "give_gold"
+text = "拿着，路上用！"
+
+[[dialogues.nodes.choices]]
+text = "多谢！"
+
+[[dialogues]]
+id = "dialogue_hunter"
+npc_name = "老猎人"
+
+[[dialogues.nodes]]
+id = "start"
+text = "年轻人，你也来打猎？我在这片森林混了三十年了。"
+
+[[dialogues.nodes.choices]]
+text = "能教我点什么吗？"
+next = "teach"
+
+[[dialogues.nodes.choices]]
+text = "有什么好猎物推荐？"
+next = "prey"
+
+[[dialogues.nodes.choices]]
+text = "打扰了"
+
+[[dialogues.nodes]]
+id = "teach"
+text = "记住，活着才能带回猎物。别逞强。"
+
+[[dialogues.nodes.choices]]
+text = "受教了"
+
+[[dialogues.nodes]]
+id = "prey"
+text = "东边有野猪，北边有狼群。新手别往深处走。送你一瓶药水。"
+
+[[dialogues.nodes.choices]]
+text = "谢谢老前辈"
+effects = [
+    { effect_type = "give_item", item_id = "health_potion", quantity = 1 },
+]
