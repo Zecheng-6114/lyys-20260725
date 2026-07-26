@@ -5,7 +5,7 @@
 # --- UI 文本 ---
 [messages]
 game_title = "终端游戏引擎"
-game_help_hint = "输入 help 查看可用命令"
+game_help_hint = "输入 help 查看可用命令；Tab 补全命令与参数"
 prompt = ">"
 goodbye = "再见！"
 player_name = "冒险者"
@@ -37,6 +37,7 @@ lines = [
     "  talk <NPC名>          - 与NPC对话",
     "  npcs                  - 列出附近NPC",
     "  quit / q / exit       - 退出",
+    "  (Tab)                 - 补全命令 / 物品 / 容器 / NPC",
 ]
 
 # --- 状态界面 ---

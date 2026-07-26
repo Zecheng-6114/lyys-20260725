@@ -1,4 +1,11 @@
+use std::collections::HashMap;
+
+use rustyline::error::ReadlineError;
+use rustyline::history::DefaultHistory;
+use rustyline::{Config, Editor};
+
 use crate::command::Command;
+use crate::completion::{CompletionSnapshot, GameHelper};
 use crate::container::{Chest, Container};
 use crate::data::GameData;
 use crate::dialogue::{ActiveDialogue, DialogueDef, DialogueEffect, NpcDef};
@@ -68,17 +75,30 @@ impl Game {
         println!("=== {} ===", self.data.msg("game_title"));
         println!("{}\n", self.data.msg("game_help_hint"));
 
-        let stdin = std::io::stdin();
+        let config = Config::builder()
+            .completion_type(rustyline::CompletionType::List)
+            .build();
+        let mut rl: Editor<GameHelper, DefaultHistory> =
+            Editor::with_config(config).expect("初始化行编辑器失败");
+        rl.set_helper(Some(GameHelper::new()));
+
+        let prompt = format!("{} ", self.data.msg("prompt"));
+
         loop {
-            print!("{} ", self.data.msg("prompt"));
-            std::io::Write::flush(&mut std::io::stdout()).unwrap();
+            self.refresh_completion(&mut rl);
 
-            let mut input = String::new();
-            if stdin.read_line(&mut input).unwrap() == 0 {
-                break;
+            let line = match rl.readline(&prompt) {
+                Ok(l) => l,
+                Err(ReadlineError::Interrupted) => continue,
+                Err(ReadlineError::Eof) => break,
+                Err(_) => break,
+            };
+
+            let input = line.trim().to_string();
+            if input.is_empty() {
+                continue;
             }
-
-            let input = input.trim().to_string();
+            let _ = rl.add_history_entry(input.as_str());
 
             if self.active_dialogue.is_some() {
                 if self.handle_dialogue_input(&input) {
@@ -95,6 +115,81 @@ impl Game {
                 Ok(cmd) => self.handle_command(cmd),
                 Err(msg) => println!("{}", msg),
             }
+        }
+    }
+
+    fn refresh_completion(&self, rl: &mut Editor<GameHelper, DefaultHistory>) {
+        let snapshot = self.build_completion_snapshot();
+        if let Some(helper) = rl.helper_mut() {
+            helper.set_snapshot(snapshot);
+        }
+    }
+
+    fn build_completion_snapshot(&self) -> CompletionSnapshot {
+        let mut backpack_items = Vec::new();
+        if let Some(bp) = &self.player.backpack {
+            for item in bp.items() {
+                if let Some(def) = self.registry.get(&item.def_id) {
+                    if !backpack_items.iter().any(|n| n == &def.name) {
+                        backpack_items.push(def.name.clone());
+                    }
+                }
+            }
+        }
+
+        let mut shop_items = Vec::new();
+        if let Some(shop) = &self.current_shop {
+            for listing in &shop.listings {
+                if let Some(def) = self.registry.get(&listing.def_id) {
+                    shop_items.push(def.name.clone());
+                }
+            }
+        }
+
+        let mut container_ids = Vec::new();
+        let mut container_items = HashMap::new();
+        for c in &self.containers {
+            container_ids.push(c.id.clone());
+            let mut names = Vec::new();
+            for item in c.items() {
+                if let Some(def) = self.registry.get(&item.def_id) {
+                    if !names.iter().any(|n| n == &def.name) {
+                        names.push(def.name.clone());
+                    }
+                }
+            }
+            container_items.insert(c.id.clone(), names);
+        }
+
+        let npc_names = self.npcs.iter().map(|n| n.name.clone()).collect();
+
+        let mut all_item_names: Vec<String> = self
+            .data
+            .raw
+            .items
+            .iter()
+            .map(|i| i.name.clone())
+            .collect();
+        all_item_names.sort();
+        all_item_names.dedup();
+
+        let dialogue_choice_count = self.active_dialogue.as_ref().and_then(|active| {
+            let dialogue = self.dialogues.iter().find(|d| d.id == active.dialogue_id)?;
+            let node = dialogue
+                .nodes
+                .iter()
+                .find(|n| n.id == active.current_node_id)?;
+            Some(node.choices.len())
+        });
+
+        CompletionSnapshot {
+            backpack_items,
+            shop_items,
+            container_ids,
+            container_items,
+            npc_names,
+            all_item_names,
+            dialogue_choice_count,
         }
     }
 
