@@ -1,4 +1,5 @@
 mod command;
+mod completion;
 mod container;
 mod data;
 mod dialogue;
